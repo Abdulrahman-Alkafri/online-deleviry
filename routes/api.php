@@ -37,9 +37,3 @@ Route::get('/stores', [StoreController::class, 'index']);
 // البحث عن المتاجر
 Route::get('/stores/search', [StoreController::class, 'search']);
 
-            //----------------- Api Cart ----------------------//
-Route::middleware('auth:sanctum')->group(function () {
-
-Route::post('/cart/add', [CartController::class, 'addToCart']);
-
-});
