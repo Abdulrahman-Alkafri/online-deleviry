@@ -1,21 +1,20 @@
-<?php  
+<?php
 
-namespace App\Http\Controllers;  
-use Illuminate\Http\Request;  
-use Illuminate\Support\Facades\Hash;  
-use App\Models\User;  
-use Illuminate\Support\Facades\Validator;  
-use Laravel\Sanctum\HasApiTokens;  
+namespace App\Http\Controllers;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use App\Models\User;
+use Illuminate\Support\Facades\Validator;
+use Laravel\Sanctum\HasApiTokens;
 use Twilio\Rest\Client;
-class AuthController extends Controller  
-{  
+class AuthController extends Controller
+{
     public function register(Request $request)
         {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:50',
             'phone' => 'required|string|unique:users,phone',
             'password' => 'required|string|min:8',
-            'role' => 'required|string',
             'image' => 'nullable|image|max:2048',
         ]);
 
@@ -64,71 +63,71 @@ class AuthController extends Controller
             'body' => $message,
         ]);
     }
-    public function login(Request $request)  
-    {  
-        $validator = Validator::make($request->all(), [  
-            'phone' => 'required|string',  
-            'password' => 'required|string',  
-        ]);  
+    public function login(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'phone' => 'required|string',
+            'password' => 'required|string',
+        ]);
 
-        if ($validator->fails()) {  
-            return response()->json($validator->errors(), 400);  
-        }  
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 400);
+        }
 
-        $user = User::where('phone', $request->phone)->first();  
+        $user = User::where('phone', $request->phone)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {  
-            return response()->json(['message' => 'Invalid credentials.'], 401);  
-        }  
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return response()->json(['message' => 'Invalid credentials.'], 401);
+        }
 
-        // Create access token with a duration and an optional refresh token  
-        $token = $user->createToken('auth_token')->plainTextToken;  
+        // Create access token with a duration and an optional refresh token
+        $token = $user->createToken('auth_token')->plainTextToken;
 
-        return response()->json([  
-            'token' => $token,  
-            'expires_in' => 60, // Token expires in 24 hours  
-        ]);  
-    }  
+        return response()->json([
+            'token' => $token,
+            'expires_in' => 60, // Token expires in 24 hours
+        ]);
+    }
 
-    public function logout(Request $request)  
-    {  
-        $request->user()->currentAccessToken()->delete();  
-        return response()->json(['message' => 'Logged out successfully.']);  
-    }  
-    public function resetPassword(Request $request)  
-    {  
-        $validator = Validator::make($request->all(), [  
-            'phone' => 'required|string|size:12',  
-            'password' => 'required|string|min:8',  
-        ]);  
+    public function logout(Request $request)
+    {
+        $request->user()->currentAccessToken()->delete();
+        return response()->json(['message' => 'Logged out successfully.']);
+    }
+    public function resetPassword(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'phone' => 'required|string|size:12',
+            'password' => 'required|string|min:8',
+        ]);
 
-        if ($validator->fails()) {  
-            return response()->json($validator->errors(), 400);  
-        }  
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 400);
+        }
 
-        $user = User::where('phone', $request->phone)->first();  
+        $user = User::where('phone', $request->phone)->first();
 
-        if (!$user) {  
-            return response()->json(['message' => 'User not found.'], 404);  
-        }  
+        if (!$user) {
+            return response()->json(['message' => 'User not found.'], 404);
+        }
 
-        $user->password = Hash::make($request->password);  
-        $user->save();  
+        $user->password = Hash::make($request->password);
+        $user->save();
 
-        return response()->json(['message' => 'Password updated successfully.']);  
-    }  
-    public function refreshToken(Request $request)  
-    {  
-        $request->user()->currentAccessToken()->delete(); // Delete the old token  
+        return response()->json(['message' => 'Password updated successfully.']);
+    }
+    public function refreshToken(Request $request)
+    {
+        $request->user()->currentAccessToken()->delete(); // Delete the old token
 
-        // Create a new token  
-        $token = $request->user()->createToken('auth_token')->plainTextToken;  
+        // Create a new token
+        $token = $request->user()->createToken('auth_token')->plainTextToken;
 
-        return response()->json([  
-            'token' => $token,  
-            'expires_in' => 60 * 24, // Token expires in 24 hours  
-        ]);  
-    }  
+        return response()->json([
+            'token' => $token,
+            'expires_in' => 60 * 24, // Token expires in 24 hours
+        ]);
+    }
     public function verifyPhone(Request $request)
     {
     $validator = Validator::make($request->all(), [
@@ -227,46 +226,46 @@ class AuthController extends Controller
     public function show(User $user){
         return response()->json(['user' => $user],200);
     }
-    public function update(Request $request, User $user)  
-{  
-    $validator = Validator::make($request->all(), [  
-        'name' => 'sometimes|required|string|max:50',  
-        'phone' => 'sometimes|required|string|unique:users,phone,' . $user->id,  
-        'password' => 'sometimes|required|string|min:8',  
-        'role' => 'sometimes|required|string',  
-        'image' => 'nullable|image|max:2048',  
-    ]);  
+    public function update(Request $request, User $user)
+{
+    $validator = Validator::make($request->all(), [
+        'name' => 'sometimes|required|string|max:50',
+        'phone' => 'sometimes|required|string|unique:users,phone,' . $user->id,
+        'password' => 'sometimes|required|string|min:8',
+        'role' => 'sometimes|required|string',
+        'image' => 'nullable|image|max:2048',
+    ]);
 
-    if ($validator->fails()) {  
-        return response()->json($validator->errors(), 400);  
-    }  
+    if ($validator->fails()) {
+        return response()->json($validator->errors(), 400);
+    }
 
-    // Update user details  
-    if ($request->has('name')) {  
-        $user->name = $request->name;  
-    }  
+    // Update user details
+    if ($request->has('name')) {
+        $user->name = $request->name;
+    }
 
-    if ($request->has('phone')) {  
-        $user->phone = $request->phone;  
-    }  
+    if ($request->has('phone')) {
+        $user->phone = $request->phone;
+    }
 
-    if ($request->has('password')) {  
-        $user->password = Hash::make($request->password);  
-    }  
+    if ($request->has('password')) {
+        $user->password = Hash::make($request->password);
+    }
 
-    if ($request->hasFile('image')) {  
-        $user->image = $request->file('image')->store('images', 'public');  
-    }  
+    if ($request->hasFile('image')) {
+        $user->image = $request->file('image')->store('images', 'public');
+    }
 
     $user->role = $request->role;
 
-    $user->save();  
+    $user->save();
 
-    return response()->json(['message' => 'User updated successfully.', 'user' => $user], 200);  
+    return response()->json(['message' => 'User updated successfully.', 'user' => $user], 200);
 }
-    public function destroy(User $user)  
-    {  
-    $user->delete();  
-    return response()->json(['message' => 'User deleted successfully.'], 200);  
+    public function destroy(User $user)
+    {
+    $user->delete();
+    return response()->json(['message' => 'User deleted successfully.'], 200);
     }
 }
