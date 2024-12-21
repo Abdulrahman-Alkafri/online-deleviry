@@ -14,13 +14,13 @@ class User extends Authenticatable
     protected $fillable = [  
         'name',  
         'phone', // Add phone to fillable  
-        'email',  
         'password',
         'role', 
         'verification_code', // Add verification code  
         'is_verified', // Add verification status  
         'image', // Add user image 
-        'reset_code' 
+        'reset_code',
+        'location' // Add location to fillable  
     ];  
 
     protected $hidden = [  

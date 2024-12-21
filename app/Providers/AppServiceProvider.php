@@ -1,24 +1,24 @@
 <?php
+use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
+use App\Models\Product;
+use App\Models\Store;
+use App\Models\User;
+use App\Policies\ProductPolicy;
+use App\Policies\StorePolicy;
+use App\Policies\UserPolicy;
+use Illuminate\Support\Facades\Gate;
 
-namespace App\Providers;
-
-use Illuminate\Support\ServiceProvider;
-
-class AppServiceProvider extends ServiceProvider
+class AuthServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
-    public function register(): void
-    {
-        //
-    }
+protected $policies = [
+User::class => UserPolicy::class,  
+Store::class => StorePolicy::class,
+Product::class => ProductPolicy::class,
+];
 
-    /**
-     * Bootstrap any application services.
-     */
-    public function boot(): void
-    {
-        //
-    }
+public function boot(): void
+{
+$this->registerPolicies(); // <-- Ensure policies are registered
+ 
+} 
 }

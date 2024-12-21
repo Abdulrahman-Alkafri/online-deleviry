@@ -1,62 +1,90 @@
-<?php
+<?php  
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers;  
 
-use Illuminate\Http\Request;
-use App\Models\Store;
+use Illuminate\Http\Request;  
+use App\Models\Store;  
+use Illuminate\Database\Eloquent\ModelNotFoundException;  
+use Illuminate\Validation\ValidationException;  
+use Symfony\Component\HttpFoundation\Response;  
 
-class StoreController extends Controller
-{
+class StoreController extends Controller  
+{  
+    public function index(Request $request)  
+    {  
+        try {  
+            $searchTerm = $request->query('q');  
+            $query = Store::query()->with('products'); // Start a query builder instance  
 
-    // دالة لعرض جميع المتاجر
-    public function index()
-    {
-        // جلب جميع المتاجر مع المنتجات المرتبطة
-        $stores = Store::with('products')->get();
+            // If there's a search term, filter the stores  
+            if ($searchTerm) {  
+                $query->where('name', 'like', "%$searchTerm%")  
+                      ->orWhere('description', 'like', "%$searchTerm%");  
+            }  
 
-        // التحقق إذا كان هناك متاجر
-        if ($stores->isEmpty()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'No stores found',
-                'data' => null
-            ], 404);
-        }
+            $stores = $query->paginate(20); // Paginate the results  
+            return response()->json($stores, 200);  
+        } catch (\Exception $e) {  
+            return response()->json(['error' => 'Failed to retrieve stores.'], Response::HTTP_INTERNAL_SERVER_ERROR);  
+        }  
+    }  
 
-        // إرجاع البيانات بصيغة JSON مع هيكل منظم
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Stores retrieved successfully',
-            'data' => $stores
-        ], 200);
-    }
+    // Create a new store  
+    public function store(Request $request)  
+    {  
+        try {  
+            $request->validate([  
+                'name' => 'required|string|max:255',  
+                'description' => 'nullable|string',  
+                'location' => 'nullable|string|max:255',  
+                'phone' => 'required|string|max:15',  
+            ]);  
 
-  // دالة البحث عن المتاجر
-public function search(Request $request)
-{
-    // الحصول على القيمة التي سيتم البحث عنها
-    $searchTerm = $request->query('q');
+            $store = Store::create($request->all());  
+            return response()->json($store, 201);  
+        } catch (ValidationException $e) {  
+            return response()->json(['error' => $e->validator->errors()], Response::HTTP_UNPROCESSABLE_ENTITY);  
+        } catch (\Exception $e) {  
+            return response()->json(['error' => 'Failed to create store.'], Response::HTTP_INTERNAL_SERVER_ERROR);  
+        }  
+    }  
 
-    // البحث في الاسم والوصف
-    $stores = Store::where('name', 'like', "%$searchTerm%")
-                   ->orWhere('description', 'like', "%$searchTerm%")
-                   ->get();
+    // Show a specific store  
+    public function show(Store $store)  
+    {  
+        return response()->json($store->load('products'), 200);  
+    }  
 
-    // التحقق إذا لم يتم العثور على أي متاجر
-    if ($stores->isEmpty()) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'No stores found matching your search query',
-            'data' => null
-        ], 404);
-    }
+    // Update a specific store  
+    public function update(Request $request, Store $store)  
+    {  
+        try {  
+            $request->validate([  
+                'name' => 'sometimes|required|string|max:255',  
+                'description' => 'nullable|string',  
+                'location' => 'nullable|string|max:255',  
+                'phone' => 'sometimes|required|string|max:15',  
+            ]);  
 
-    return response()->json([
-        'status' => 'success',
-        'message' => 'Stores retrieved successfully',
-        'data' => $stores
-    ], 200);
-}
+            $store->update($request->all());  
+            return response()->json($store, 200);  
+        } catch (ValidationException $e) {  
+            return response()->json(['error' => $e->validator->errors()], Response::HTTP_UNPROCESSABLE_ENTITY);  
+        } catch (ModelNotFoundException $e) {  
+            return response()->json(['error' => 'Store not found.'], Response::HTTP_NOT_FOUND);  
+        } catch (\Exception $e) {  
+            return response()->json(['error' => 'Failed to update store.'], Response::HTTP_INTERNAL_SERVER_ERROR);  
+        }  
+    }  
 
-
+    // Delete a specific store  
+    public function destroy(Store $store)  
+    {  
+        try {  
+            $store->delete();  
+            return response()->json(null, 204);  
+        } catch (\Exception $e) {  
+            return response()->json(['error' => 'Failed to delete store.'], Response::HTTP_INTERNAL_SERVER_ERROR);  
+        }  
+    }  
 }
