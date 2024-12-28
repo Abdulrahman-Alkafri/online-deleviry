@@ -3,13 +3,12 @@
 namespace App\Http\Controllers;  
 
 use App\Models\Order;  
-use App\Models\Product;
+use App\Models\Product;  
 use Illuminate\Http\Request;  
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;  
+use Illuminate\Support\Facades\DB;  
 use Illuminate\Validation\ValidationException;  
 use Symfony\Component\HttpFoundation\Response;  
-use Illuminate\Support\Facades\Gate;  
 
 class OrderController extends Controller  
 {  
@@ -17,6 +16,7 @@ class OrderController extends Controller
     public function placeOrder(Request $request)  
     {  
         try {  
+            // Validate the incoming request  
             $request->validate([  
                 'products' => 'required|array',  
                 'products.*.product_id' => 'required|exists:products,id',  
@@ -27,6 +27,7 @@ class OrderController extends Controller
             foreach ($request->products as $productData) {  
                 $product = Product::findOrFail($productData['product_id']);  
     
+                // Check if there is sufficient quantity  
                 if ($product->quantity < $productData['quantity']) {  
                     return response()->json(['error' => 'Insufficient product quantity for product ID ' . $product->id], Response::HTTP_BAD_REQUEST);  
                 }  
@@ -40,7 +41,7 @@ class OrderController extends Controller
                 // Attach the product to the order with quantity  
                 $order->products()->attach($product->id, ['quantity' => $productData['quantity']]);  
     
-                // Decrease the product quantity  
+                // Decrease the product quantity in stock  
                 $product->decrement('quantity', $productData['quantity']);  
     
                 $orders[] = $order;  
@@ -52,51 +53,54 @@ class OrderController extends Controller
         } catch (\Exception $e) {  
             return response()->json(['error' => 'Failed to place order.'], Response::HTTP_INTERNAL_SERVER_ERROR);  
         }  
-    }
-
-    // View all orders for the authenticated user  
-   // View all orders for a specific user  
-public function viewOrders($userId)  
-{  
-    try {  
-
-        $orders = Order::where('user_id', $userId)->with('products')->get();  
-
-        return response()->json($orders, Response::HTTP_OK);  
-    } catch (\Exception $e) {  
-        return response()->json(['error' => 'Failed to retrieve orders.'], Response::HTTP_INTERNAL_SERVER_ERROR);  
     }  
-} 
+
+    // View all orders for a specific user  
+    public function viewOrders($userId)  
+    {  
+        try {  
+            $orders = Order::where('user_id', $userId)->with('products')->get();  
+            return response()->json($orders, Response::HTTP_OK);  
+        } catch (\Exception $e) {  
+            return response()->json(['error' => 'Failed to retrieve orders.'], Response::HTTP_INTERNAL_SERVER_ERROR);  
+        }  
+    }   
 
     // Update an existing order (cancel or edit)  
     public function updateOrder(Request $request, Order $order)  
     {  
         try {  
+            // Check if the authenticated user is the owner of the order  
             if ($order->user_id !== Auth::id()) {  
                 return response()->json(['error' => 'Unauthorized.'], Response::HTTP_FORBIDDEN);  
             }  
-    
+
+            // Validate request inputs  
             $request->validate([  
                 'quantity' => 'sometimes|required|integer|min:1',  
                 'status' => 'sometimes|required|in:pending,canceled',  
-                'products' => 'sometimes|array', // New field for adding products  
-                'products.*.id' => 'required|exists:products,id', // Validate product IDs  
-                'products.*.quantity' => 'required|integer|min:1', // Validate product quantities  
+                'products' => 'sometimes|array',  
+                'products.*.id' => 'required|exists:products,id',  
+                'products.*.quantity' => 'required|integer|min:1',  
             ]);  
     
             // Allow cancellation if the order is still pending  
             if ($request->status === 'canceled' && $order->status === 'pending') {  
                 $order->update(['status' => 'canceled']);  
-                // Increase the product quantity back  
-                $product = $order->product;  
-                $product->increment('quantity', $order->quantity);  
+                // Restore the product quantity  
+                foreach ($order->products as $product) {  
+                    $product->increment('quantity', $product->pivot->quantity); // Return previous quantity  
+                }  
             } elseif ($request->has('quantity')) {  
                 // Update quantity if the order is still pending  
                 if ($order->status === 'pending') {  
                     // Adjust product quantity  
-                    $product = $order->product;  
-                    $product->increment('quantity', $order->quantity); // Return previous quantity  
+                    foreach ($order->products as $product) {  
+                        $product->increment('quantity', $product->pivot->quantity); // Return previous quantity  
+                    }  
                     $order->update(['quantity' => $request->quantity]);  
+                    // Assume we need the first product for quantity adjustment  
+                    $product = $order->products()->first();   
                     $product->decrement('quantity', $request->quantity); // Deduct new quantity  
                 } else {  
                     return response()->json(['error' => 'Cannot update a delivered or canceled order.'], Response::HTTP_BAD_REQUEST);  
@@ -116,7 +120,7 @@ public function viewOrders($userId)
                     // Add the product to the order  
                     $order->products()->attach($product->id, ['quantity' => $productData['quantity']]);  
                     
-                    // Decrease the product quantity in the products table  
+                    // Decrease the product quantity in stock  
                     $product->decrement('quantity', $productData['quantity']);  
                 }  
             }  
@@ -127,12 +131,13 @@ public function viewOrders($userId)
         } catch (\Exception $e) {  
             return response()->json(['error' => 'Failed to update order.'], Response::HTTP_INTERNAL_SERVER_ERROR);  
         }  
-    }
-    // Delete an order (only delivered orders can be deleted)  
+    }  
+
+    // Delete an order (only canceling is allowed if delivered)  
     public function destroy(Order $order)  
     {  
         try {  
-            if ($order->status === "pending" ) {  
+            if ($order->status === "pending") {  
                 return response()->json(['error' => 'Only delivered orders can be deleted.'], Response::HTTP_BAD_REQUEST);  
             }  
 
@@ -147,15 +152,11 @@ public function viewOrders($userId)
     public function changeOrderStatus(Request $request, Order $order)  
     {  
         try {  
-            // if (!$request->order()->can('changeOrderStatus', Order::class)) {  
-            //     return response()->json(['message' => 'Unauthorized.'], 403);  
-            // }  
-    
             $request->validate([  
                 'status' => 'required|in:pending,delivered,canceled',  
             ]);  
     
-            // Only allow changing status for pending and delivered orders  
+            // Only allow changing status for certain conditions  
             if ($order->status === 'delivered' && $request->status === 'canceled') {  
                 return response()->json(['error' => 'Cannot cancel a delivered order.'], Response::HTTP_BAD_REQUEST);  
             }  
@@ -167,17 +168,23 @@ public function viewOrders($userId)
         } catch (\Exception $e) {  
             return response()->json(['error' => 'Failed to change order status.'], Response::HTTP_INTERNAL_SERVER_ERROR);  
         }  
-    } 
+    }   
+
+    // Get orders for a specific store  
     public function getOrdersForStore($storeId)  
     {  
-        $orders = DB::table('orders')  
-            ->join('order_product', 'orders.id', '=', 'order_product.order_id')  
-            ->join('products', 'order_product.product_id', '=', 'products.id')  
-            ->where('products.store_id', $storeId)  
-            ->select('orders.*') // You can select specific fields if needed  
-            ->distinct() // To avoid duplicate orders if they have multiple products  
-            ->get();  
+        try {  
+            $orders = DB::table('orders')  
+                ->join('order_product', 'orders.id', '=', 'order_product.order_id')  
+                ->join('products', 'order_product.product_id', '=', 'products.id')  
+                ->where('products.store_id', $storeId)  
+                ->select('orders.*')  // Select fields you need  
+                ->distinct()  // To avoid duplicate orders  
+                ->get();  
 
-        return response()->json($orders);  
-    }
+            return response()->json($orders, Response::HTTP_OK);  
+        } catch (\Exception $e) {  
+            return response()->json(['error' => 'Failed to retrieve orders for the store.'], Response::HTTP_INTERNAL_SERVER_ERROR);  
+        }  
+    }  
 }
