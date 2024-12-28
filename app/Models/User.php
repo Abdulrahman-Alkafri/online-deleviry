@@ -27,8 +27,7 @@ class User extends Authenticatable
         'password',  
         'remember_token',  
         'verification_code', // Hide verification code  
-    ];  
-
+    ];
     protected function casts(): array  
     {  
         return [  
@@ -36,4 +35,8 @@ class User extends Authenticatable
             'password' => 'hashed',  
         ];  
     }  
+    public function favorites()  
+    {  
+        return $this->belongsToMany(Product::class, 'favorites')->withTimestamps();  
+    } 
 }

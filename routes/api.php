@@ -55,3 +55,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/orders/{order}/status', [OrderController::class, 'changeOrderStatus'])  
     ->can('changeOrderStatus', Order::class);  
 });
+
+// ---------------------- API favorites -----------------//
+use App\Http\Controllers\FavoriteController;  
+
+Route::middleware('auth:sanctum')->group(function () {  
+    Route::post('/favorites/{productId}', [FavoriteController::class, 'store']);  
+    Route::delete('/favorites/{productId}', [FavoriteController::class, 'destroy']);  
+    Route::get('/favorites', [FavoriteController::class, 'index']);  
+});
