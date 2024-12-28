@@ -1,18 +1,25 @@
-<?php
-namespace App\Models;
+<?php  
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+namespace App\Models;  
 
-class Store extends Model
-{
-    use HasFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;  
+use Illuminate\Database\Eloquent\Model;  
 
-    protected $fillable = ['name', 'description', 'location', 'phone'];
+class Store extends Model  
+{  
+    use HasFactory;  
 
-    // العلاقة مع المنتجات
-    public function products()
-    {
-        return $this->hasMany(Product::class);
-    }
+    protected $fillable = ['name', 'description', 'location', 'phone', 'user_id']; // Include user_id  
+
+    // العلاقة مع المنتجات  
+    public function products()  
+    {  
+        return $this->hasMany(Product::class);  
+    }  
+
+    // العلاقة مع المستخدم  
+    public function user()  
+    {  
+        return $this->belongsTo(User::class);  
+    }  
 }

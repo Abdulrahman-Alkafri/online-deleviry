@@ -99,7 +99,7 @@ class AuthController extends Controller
 
         return response()->json([  
             'token' => $token,  
-            'expires_in' => 60 * 24, // Token expires in 24 hours  
+            'expires_in' => 60, // Token expires in 24 hours  
         ]);  
     }  
 
@@ -144,7 +144,8 @@ class AuthController extends Controller
     public function refreshToken(Request $request)  
     {  
         try {  
-            $request->user()->currentAccessToken()->delete(); // Delete the old token  
+            // Delete the old token  
+            $request->user()->currentAccessToken()->delete();  
 
             // Create a new token  
             $token = $request->user()->createToken('auth_token')->plainTextToken;  
@@ -156,7 +157,7 @@ class AuthController extends Controller
         } catch (\Exception $e) {  
             return response()->json(['message' => 'Failed to refresh token. Please try again.'], 500);  
         }  
-    }  
+    }
 
     public function verifyPhone(Request $request)  
     {  

@@ -10,6 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class StoreController extends Controller  
 {  
+    // Display a listing of the stores  
     public function index(Request $request)  
     {  
         try {  
@@ -38,8 +39,10 @@ class StoreController extends Controller
                 'description' => 'nullable|string',  
                 'location' => 'nullable|string|max:255',  
                 'phone' => 'required|string|max:15',  
+                'user_id' => 'required|exists:users,id' // Validate user_id presence  
             ]);  
 
+            // Create a store based on the request data  
             $store = Store::create($request->all());  
             return response()->json($store, 201);  
         } catch (ValidationException $e) {  
@@ -64,8 +67,10 @@ class StoreController extends Controller
                 'description' => 'nullable|string',  
                 'location' => 'nullable|string|max:255',  
                 'phone' => 'sometimes|required|string|max:15',  
+                'user_id' => 'sometimes|required|exists:users,id' // Validate user_id presence when updating  
             ]);  
 
+            // Update the store with the user's request data  
             $store->update($request->all());  
             return response()->json($store, 200);  
         } catch (ValidationException $e) {  
