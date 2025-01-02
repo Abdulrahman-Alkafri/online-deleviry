@@ -29,8 +29,14 @@ class StoreController extends Controller
             return response()->json(['error' => 'Failed to retrieve stores.'], Response::HTTP_INTERNAL_SERVER_ERROR);  
         }  
     }  
-
+    
+    // Show a specific store  
+    public function show(Store $store)  
+    {  
+        return response()->json($store->load('products'), 200);  
+    }  
     // Create a new store  
+  // Create a new store  
     public function store(Request $request)  
     {  
         try {  
@@ -39,23 +45,24 @@ class StoreController extends Controller
                 'description' => 'nullable|string',  
                 'location' => 'nullable|string|max:255',  
                 'phone' => 'required|string|max:15',  
-                'user_id' => 'required|exists:users,id' // Validate user_id presence  
+                'user_id' => 'required|exists:users,id', // Validate user_id presence  
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048' // Validate image  
             ]);  
 
+            // Handle image upload  
+            $imagePath = null;  
+            if ($request->hasFile('image')) {  
+                $imagePath = $request->file('image')->store('images', 'public'); // Store image in public/images directory  
+            }  
+
             // Create a store based on the request data  
-            $store = Store::create($request->all());  
+            $store = Store::create(array_merge($request->all(), ['image' => $imagePath]));  
             return response()->json($store, 201);  
         } catch (ValidationException $e) {  
             return response()->json(['error' => $e->validator->errors()], Response::HTTP_UNPROCESSABLE_ENTITY);  
         } catch (\Exception $e) {  
             return response()->json(['error' => 'Failed to create store.'], Response::HTTP_INTERNAL_SERVER_ERROR);  
         }  
-    }  
-
-    // Show a specific store  
-    public function show(Store $store)  
-    {  
-        return response()->json($store->load('products'), 200);  
     }  
 
     // Update a specific store  
@@ -67,11 +74,19 @@ class StoreController extends Controller
                 'description' => 'nullable|string',  
                 'location' => 'nullable|string|max:255',  
                 'phone' => 'sometimes|required|string|max:15',  
-                'user_id' => 'sometimes|required|exists:users,id' // Validate user_id presence when updating  
+                'user_id' => 'sometimes|required|exists:users,id', // Validate user_id presence when updating  
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048' // Validate image  
             ]);  
 
+            // Handle image upload  
+            $imagePath = $store->image; // Keep existing image path  
+            if ($request->hasFile('image')) {  
+                // If a new image is uploaded, store it and update the path  
+                $imagePath = $request->file('image')->store('images', 'public');  
+            }  
+
             // Update the store with the user's request data  
-            $store->update($request->all());  
+            $store->update(array_merge($request->all(), ['image' => $imagePath]));  
             return response()->json($store, 200);  
         } catch (ValidationException $e) {  
             return response()->json(['error' => $e->validator->errors()], Response::HTTP_UNPROCESSABLE_ENTITY);  
@@ -80,7 +95,7 @@ class StoreController extends Controller
         } catch (\Exception $e) {  
             return response()->json(['error' => 'Failed to update store.'], Response::HTTP_INTERNAL_SERVER_ERROR);  
         }  
-    }  
+    }
 
     // Delete a specific store  
     public function destroy(Store $store)  

@@ -9,15 +9,15 @@ class Store extends Model
 {  
     use HasFactory;  
 
-    protected $fillable = ['name', 'description', 'location', 'phone', 'user_id']; // Include user_id  
+    protected $fillable = ['name', 'description', 'location', 'phone', 'user_id', 'image']; // Include image  
 
-    // العلاقة مع المنتجات  
+    // Relationship with products  
     public function products()  
     {  
         return $this->hasMany(Product::class);  
     }  
 
-    // العلاقة مع المستخدم  
+    // Relationship with user  
     public function user()  
     {  
         return $this->belongsTo(User::class);  
