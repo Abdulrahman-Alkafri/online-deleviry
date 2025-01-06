@@ -5,6 +5,7 @@ use App\Http\Controllers\StoreController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\OrderController;  
 use App\Models\Order;
+use App\Http\Controllers\FcmController;
 
 //------------------API Auth-------------------// 
 Route::post('/login', [AuthController::class, 'login']);  
@@ -73,3 +74,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/favorites/{productId}', [FavoriteController::class, 'destroy']);  
     Route::get('/favorites', [FavoriteController::class, 'index']);  
 });
+
+
+Route::put('update-device-token', [FcmController::class, 'updateDeviceToken']);
+Route::post('send-fcm-notification', [FcmController::class, 'sendFcmNotification']);

@@ -21,22 +21,23 @@ class AuthController extends Controller
             'password' => 'required|string|min:8',  
             'image' => 'nullable|image|max:2048',  
             'role' => 'string|required',  
-            'location' => 'nullable|string|max:255', // Validation for location  
+            'location' => 'nullable|string|max:255',  
+            'fcm_token' => 'nullable|string' // Allow FCM token in registration  
         ]);  
-
+    
         if ($validator->fails()) {  
             return response()->json($validator->errors(), 400);  
         }  
-
+    
         // Handle image upload if provided  
         $imagePath = null;  
         if ($request->hasFile('image')) {  
             $imagePath = $request->file('image')->store('images', 'public');  
         }  
-
+    
         // Generate a verification code  
         $verificationCode = rand(100000, 999999);  
-
+    
         // Create user with unverified status  
         try {  
             $user = User::create([  
@@ -47,21 +48,21 @@ class AuthController extends Controller
                 'image' => $imagePath,  
                 'is_verified' => false,  
                 'verification_code' => $verificationCode,  
-                'location' => $request->location, // Add location to user creation  
+                'location' => $request->location,  
+                'fcm_token' => $request->fcm_token // Store the FCM token  
             ]);  
         } catch (\Exception $e) {  
             return response()->json(['message' => 'Failed to register user. Please try again.'], 500);  
         }  
-
-        // Send the verification code via SMS  
+    
+        // Optionally send the verification code via SMS  
         try {  
             $this->sendSMS($user->phone, "Your verification code is: $verificationCode");  
         } catch (\Exception $e) {  
             return response()->json(['message' => 'Failed to send SMS. Please try again.'], 500);  
         }  
-
         return response()->json(['message' => 'User registered successfully. Please verify your phone.']);  
-    }  
+    }
 
     // Twilio SMS Sending Function  
     protected function sendSMS($to, $message)  
@@ -93,7 +94,18 @@ class AuthController extends Controller
         if (!$user || !Hash::check($request->password, $user->password)) {  
             return response()->json(['message' => 'Invalid credentials.'], 401);  
         }  
-
+        // Send a welcome notification after registration  
+        try {  
+            $fcmController = new FcmController();  
+            $welcomeTitle = "Welcome to Our App!";  
+            $welcomeBody = "Thank you for registering, {$user->name}. We're excited to have you with us!";  
+            $welcomeData = []; // Any additional data if needed  
+            $fcmController->sendNotification($user->fcm_token, $welcomeTitle, $welcomeBody, $welcomeData);  
+        } catch (\Exception $e) {  
+            // Log the error or handle accordingly
+            return response()->json(['message' => 'Failed to send welcome notification'], 500);    
+        }  
+    
         // Create access token with a duration  
         $token = $user->createToken('auth_token')->plainTextToken;  
 
