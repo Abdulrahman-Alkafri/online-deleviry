@@ -53,6 +53,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/orders/{order}/status', [OrderController::class, 'changeOrderStatus'])  
     ->can('changeOrderStatus', Order::class);  
 });
+// ---------------------- API Cart  -----------------//
+use App\Http\Controllers\CartController;  
+
+Route::middleware('auth:sanctum')->group(function () {  
+    Route::post('/cart/add', [CartController::class, 'addToCart']);  
+    Route::delete('/cart/remove/{id}', [CartController::class, 'removeFromCart']);  
+    Route::put('/cart/update/{id}', [CartController::class, 'updateCart']);  
+    Route::delete('/cart/reset', [CartController::class, 'resetCart']);  
+    Route::get('/cart/total', [CartController::class, 'getTotal']);  
+    Route::get('/cart/items', [CartController::class, 'getCartItems']);  
+});
 
 // ---------------------- API favorites -----------------//
 use App\Http\Controllers\FavoriteController;  
