@@ -106,5 +106,20 @@ class StoreController extends Controller
         } catch (\Exception $e) {  
             return response()->json(['error' => 'Failed to delete store.'], Response::HTTP_INTERNAL_SERVER_ERROR);  
         }  
-    }  
+    } 
+    // Get stores for the authenticated user  
+    public function getStoresForUser(Request $request)  
+        {  
+            try {  
+                // Get the authenticated user  
+                $user = $request->user();  
+                
+                // Fetch stores associated with the user  
+                $stores = Store::where('user_id', $user->id)->with('products')->paginate(20);  
+                
+                return response()->json($stores, 200);  
+            } catch (\Exception $e) {  
+                return response()->json(['error' => 'Failed to retrieve stores.'], Response::HTTP_INTERNAL_SERVER_ERROR);  
+            }  
+        } 
 }

@@ -39,7 +39,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('/stores/{store}', [StoreController::class, 'update']);
     Route::delete('/stores/{store}', [StoreController::class, 'destroy'])->middleware('can:delete,store'); // Only admins can delete 
     Route::get('/stores/{store}/orders', [OrderController::class, 'getOrdersForStore'])->middleware('can:delete,store');;  
- 
+    Route::get('/user/stores', [StoreController::class, 'getStoresForUser']);  
+
 });
 
 

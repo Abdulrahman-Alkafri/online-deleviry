@@ -1,33 +1,25 @@
 <?php  
 
-use Illuminate\Database\Migrations\Migration;  
-use Illuminate\Database\Schema\Blueprint;  
-use Illuminate\Support\Facades\Schema;  
+namespace App\Models;  
 
-return new class extends Migration  
+use Illuminate\Database\Eloquent\Factories\HasFactory;  
+use Illuminate\Database\Eloquent\Model;  
+
+class Store extends Model  
 {  
-    /**  
-     * Run the migrations.  
-     */  
-    public function up(): void  
+    use HasFactory;  
+
+    protected $fillable = ['name', 'description', 'location', 'phone', 'user_id', 'image']; // Include image  
+
+    // Relationship with products  
+    public function products()  
     {  
-        Schema::create('stores', function (Blueprint $table) {  
-            $table->id();  
-            $table->foreignId('user_id')->constrained()->onDelete('cascade'); // Add foreign key to users table  
-            $table->string('name');  
-            $table->text('description')->nullable();  
-            $table->string('location')->nullable();   
-            $table->string('phone');  
-            $table->string('image')->nullable();
-            $table->timestamps();  
-        });  
+        return $this->hasMany(Product::class);  
     }  
 
-    /**  
-     * Reverse the migrations.  
-     */  
-    public function down(): void  
+    // Relationship with user  
+    public function user()  
     {  
-        Schema::dropIfExists('stores');  
+        return $this->belongsTo(User::class);  
     }  
-};
+}
