@@ -111,7 +111,8 @@ class AuthController extends Controller
 
         return response()->json([  
             'token' => $token,  
-            'expires_in' => 60, // Token expires in 24 hours  
+            'expires_in' => 60, 
+            'user_id' => $user->id
         ]);  
     }  
 
